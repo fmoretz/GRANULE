@@ -74,7 +74,6 @@ So = 227.41/1000 # kg/m3
 u = 2.1 # m/h
 _Q = 27 # m3/h
 
-plt.figure()
 for index in range(0, len(day_sim)):
 	day = day_sim[index] 	# days of simulations
 
@@ -202,10 +201,6 @@ for index in range(0, len(day_sim)):
 				_T.append(T[j])
 				_M.append(M[j])
 				_M_vol.append(M_vol[j])
-
-	print(_Yv)
-	print(_Vbed)
-	print(_ratio)
 
 	# ∞∞ SCAL ∞∞
 	for i in range(0, npt):

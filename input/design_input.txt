@@ -1,8 +1,8 @@
-DESIGN DATA OF UASB REACTOR
+DESIGN DATA OF REACTOR
 
 Volume of the reactor [m3]__________: 180
 Diameter of the reactor [m]_________: 4.05
 Height of the reactor [m]___________: 14
 Effective height of the reactor [m]_: 13
-Flow rate of the reactor [m3/h]_____: 27
+influent flow in the reactor [m3/h]_: 27
 Upflow velocity [m/h]_______________: 2.10

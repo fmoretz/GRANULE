@@ -1,40 +1,51 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
-from CSTR_ode import *
+
+import CSTR_ode as ode
+
 from kinetic_coefficients import *
 from physical_coefficients import *
-#from design_input import *
-#from influent_input import *
+from design_input import *
+from influent_input import *
 
 plt.close('all')
 N   = 10 		# number of CSTRs
 
-So =0.22741
-Xo =2
-Eo =0
-Mo =0
-Ro =2.5
-Tw =50
-To =30
+# So =0.22741
+# Xo =2
+# Eo =0
+# Mo =0
+# Ro =2.5
+# Tw =50
+# To =30
 
-V  = 180
-Dc = 4.05
-H  = 14
-H_ef = 13
-_Q = 27
-u = 2.1
+# V  = 180
+# Dc = 4.05
+# H  = 14
+# H_ef = 13
+# Q = 27
+# u = 2.1
+# A = 3.1415 * Dc**2 / 4
+# Vef = A * H_ef
 
-A = 3.1415 * Dc**2 / 4
+V    = float(V)
+Dc   = float(Dc)
+H    = float(H)
+H_ef = float(H_ef)
+Q    = float(Q)
+u    = float(u)
 
-Vef = A * H_ef
+A = float(3.1415 * Dc**2 / 4)
+
+Vef = float(A * H_ef)
 
 m   = rho_biomass * Vef;  			# kg
 U   = 400 * 3600 					# J/m2/h/K
 A_lateral   = 3.1415*Dc*H/N     	# m2
 
 
-D  = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
+D   = (7.4 * 10**(-8) *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 _m  = (0.013*(To-273.15)-0.129)/24  # h-1
 
 
@@ -52,7 +63,7 @@ for index in range(0, len(day_sim)):
 	# ∞∞ BCON ∞∞
 	Sp  = np.zeros(npt, dtype='float64')
 
-	_S = []; _X = []; _E = []; _T=[]; _Rnew = [];  _eta = []
+	_S = []; _X = []; _E = []; _T=[]; _Rnew = [];  _eta = []; Nok = []
 	_Yv = []; _Vbed = []; _ratio = []; _Ych4 = []; _M = []; _M_vol = []
 	_Rnew.append(Ro/1000)
 
@@ -76,6 +87,7 @@ for index in range(0, len(day_sim)):
 			pass
 		else:
 			print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo+Eo, 0.25*rho_biomass, r[-1]))
+			Nok.append(k)
 			# Neumann   - Surface of particle
 			Sp[-1] = ( km*So - D/dr*Sp[npt-1] )/( km - D/dr )
 
@@ -84,12 +96,12 @@ for index in range(0, len(day_sim)):
 				if (i == npt-1):
 					break
 				else:
-					g = (_m/Y/D*Xo) * Sp[i]/(Ks + Sp[i])
-					A = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
-					B = -1/dr**2 * Sp[i-1]
+					etha = (_m/Y/D*Xo) * Sp[i]/(Ks + Sp[i])
+					alfa = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
+					beta = -1/dr**2 * Sp[i-1]
 
 					# Solution to Sp
-					Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (A + B + g)
+					Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (alfa + beta + etha)
 
 					# Dirichlet - Center of particle
 					Sp[0]  = Sp[1]
@@ -102,17 +114,17 @@ for index in range(0, len(day_sim)):
 
 			_Rnew.append(Rnew)
 
-			_q = km * (So - Sp[0])       #-D * (Sp[0] - Sp[-1])/(2*dr)
+			Q = km * (So - Sp[0])       #-D * (Sp[0] - Sp[-1])/(2*dr)
 
-			_R = _q * (4*3.1415*r[-1]**2)*Np
+			_R = Q * (4*3.1415*r[-1]**2)*Np
 
-			#if _Q in globals():
+			#if Q in globals():
 			#	pass
 			#else:
-			#	_Q = u * (3.1415*Dc**2)/4
-			#	print(_Q)
+			#	Q = u * (3.1415*Dc**2)/4
+			#	print(Q)
 
-			HRT = Vef / _Q	#h
+			HRT = Vef / Q	#h
 			B   = B0 *( 1 - K / (_m * HRT/(Kd*HRT + 1) + K-1) ) 	# m3 CH4 / kg COD added
 			Yv  = B * So / HRT                                   	# m3 CH4 / kg COD added / h
 			Ych4 = Yv * So * Vef									# m3 CH4 / h
@@ -134,10 +146,10 @@ for index in range(0, len(day_sim)):
 			)
 
 			sol = odeint(
-				fCSTR,
+				ode.fCSTR,
 				[So, Xo, Eo, To, Mo],
 				t,
-				args=(_Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
+				args=(Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
 				atol=1e-7,
 				rtol=1e-9,
 				mxstep=100000
@@ -179,7 +191,8 @@ for index in range(0, len(day_sim)):
 		r[i]  = r[i]  * 1000
 		Sp[i] = Sp[i] * 1000
 
-	for i in range(0, N+1):
+	print(_Rnew)
+	for i in range(0, len(Nok)):
 		_Rnew[i] = _Rnew[i]*1000
 
 	# ∞∞ VISZ ∞∞
@@ -236,7 +249,7 @@ for index in range(0, len(day_sim)):
 
 
 	plt.figure()
-	plt.plot(np.linspace(0, N, N+1), _Rnew)
+	plt.plot(np.linspace(0, Nok[-1], Nok[-1]+1), _Rnew)
 	plt.xlabel('N° CSTR')
 	plt.ylabel('Particle Radius - mm')
 	plt.grid(True)
@@ -244,7 +257,7 @@ for index in range(0, len(day_sim)):
 
 
 	plt.figure()
-	plt.plot(np.linspace(1, N, N-2), _eta[1:-1])
+	plt.plot(np.linspace(0, Nok[-1], Nok[-1]-2), _eta[1:-1])
 	plt.xlabel('N° CSTR')
 	plt.ylabel('Efficiency')
 	plt.grid(True)
@@ -260,12 +273,12 @@ for index in range(0, len(day_sim)):
 		hspace = 0.287
 		)
 
-	ass[0].plot(np.linspace(1, N, N-2), _Yv[1:-1],  'k-', linewidth=2)
+	ass[0].plot(np.linspace(1, Nok[-1], Nok[-1]-2), _Yv[1:-1],  'k-', linewidth=2)
 	ass[0].set_xlabel('N° CSTR ')
 	ass[0].set_ylabel('Yv - m3CH4/kgCOD/h')
 	ass[0].grid(True)
 
-	ass[1].plot(np.linspace(1, N, N-2), _Vbed[1:-1], 'b-', linewidth=2)
+	ass[1].plot(np.linspace(1, Nok[-1], Nok[-1]-2), _Vbed[1:-1], 'b-', linewidth=2)
 	ass[1].set_xlabel('N° CSTR ')
 	ass[1].set_ylabel('Vbed - m3')
 	ass[1].set_ylim([0, V])
@@ -273,7 +286,7 @@ for index in range(0, len(day_sim)):
 
 	# Plot Ych4
 	plt.figure()
-	plt.plot(np.linspace(1, N, N-2), _Ych4[1:-1], 'k-', linewidth=2)
+	plt.plot(np.linspace(1, Nok[-1], Nok[-1]-2), _Ych4[1:-1], 'k-', linewidth=2)
 	plt.xlabel(xlabel='N° CSTR')
 	plt.ylabel(ylabel='Ych4 - m3CH4/kgCOD/h')
 	plt.grid(True)

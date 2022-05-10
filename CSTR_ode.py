@@ -11,8 +11,12 @@ def fCSTR(y, t, Q, V, Sin, R, Y, Kd, eta, U, A, rb, cp, m, Tin, Tw, Na):
 	dy[2] = Kd*X
 	dy[3] = ( U*A*(Tw - T) + Q*rb*cp*(Tin - T) ) / (m * cp)
 	dy[4] = -Q/V*M + R*eta
+ 
 	if abs(Tw - T) < 1e-4:
 		dy[3] = 0
+	
+	if S < 0:
+		S = 0
 
 
 	return dy
