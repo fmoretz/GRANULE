@@ -230,18 +230,20 @@ for index in range(0, len(day_sim)):
 		right  = 0.9,
 		top    = 0.971,
 		wspace = 0.2,
-		hspace = 0.287
+		hspace = 0.5
 		)
 
 	axs[0,0].plot(r, Sp, 'k-', linewidth=1.5, label='Sp')
 	axs[0,0].set_xlabel('r - mm')
 	axs[0,0].set_ylabel('Sp - g/m3')
+	axs[0,0].set_xlim([0, r[-1]])
 	axs[0,0].set_title('Substrate gradient inside the granule', fontsize=10)
 	axs[0,0].grid(True)
 
 	axs[0,1].plot(t, _S, 'b-', linewidth=1.5, label='S')
 	axs[0,1].set_xlabel('t - d')
 	axs[0,1].set_ylabel('S, - kg/m3')
+	axs[0,1].set_xlim([0, t[-1]])
 	axs[0,1].set_title('Substrate Concentration Profile', fontsize=10)
 	axs[0,1].grid(True)
 
@@ -286,45 +288,45 @@ for index in range(0, len(day_sim)):
 	    right  = 0.9,
 	    top    = 0.971,
 	    wspace = 0.2,
-	    hspace = 0.287
+	    hspace = 0.5
 		)
 
 	axs2[0,0].plot(np.linspace(0, N, N+1), _Rnew, 'k-', linewidth=1.5)
 	axs2[0,0].set_xlabel('N° CSTR')
 	axs2[0,0].set_ylabel('Particle Radius - mm')
-	axs2[0,0].set_title('Increase of the Particle Radius')
+	axs2[0,0].set_title('Increase of the Particle Radius', fontsize=10)
 	axs2[0,0].grid(True)
 
 	axs2[0,1].plot(np.linspace(1, N, N-2), _eta[1:-1], 'b-', linewidth=1, label='S')
 	axs2[0,1].set_xlabel('N° CSTR')
 	axs2[0,1].set_ylabel('Efficiency')
-	axs2[0,1].set_title('Internal Mass Transfer Efficiency')
+	axs2[0,1].set_title('Internal Mass Transfer Efficiency', fontsize=10)
 	axs2[0,1].grid(True)
 
 	axs2[1,0].plot(np.linspace(1, N, N-2), _Yv[1:-1],  'k-', linewidth=2)
 	axs2[1,0].set_xlabel('N° CSTR ')
 	axs2[1,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
-	axs2[1,0].set_title('Methane Production Rate')
+	axs2[1,0].set_title('Methane Production Rate', fontsize=10)
 	axs2[1,0].grid(True)
 
 	axs2[1,1].plot(np.linspace(1, N, N-2), _Vbed[1:-1], 'b-', linewidth=2)
 	axs2[1,1].set_xlabel('N° CSTR ')
 	axs2[1,1].set_ylabel('Vbed - m3')
 	axs2[1,1].set_ylim([0, V])
-	axs2[1,1].set_title('Bed Volume Expansion')
+	axs2[1,1].set_title('Bed Volume Expansion', fontsize=10)
 	axs2[1,1].grid(True)
 
 	axs2[2,0].plot(np.linspace(1, N, N-2), _Ych4[1:-1], 'k-', linewidth=2)
 	axs2[2,0].set_xlabel('N° CSTR')
 	axs2[2,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
-	axs2[2,0].set_title('Methane Production Rate') #to change
+	axs2[2,0].set_title('Methane Production Rate', fontsize=10) #to change
 	axs2[2,0].grid(True)
 
-		#axs2[2,1].plot(t, _M_vol, 'r--', linewidth=0.4, label='M')
-		#axs2[2,1].plot(t_ss, M_vol_ss, 'r-o', linewidth=1)
-		#axs2[2,1].set_xlabel('t - d')
-		#axs2[2,1].grid(True)
-		#axs2[2,1].set_ylabel('M - m3/d')
+	axs2[2,1].plot(t_ss, M_cumulative, 'ro-', linewidth=1.5, label='Cumulative Methane')
+	axs2[2,1].set_xlabel('t - d')
+	axs2[2,1].set_ylabel('Cumulative Methane - m3/d')
+	axs2[2,1].grid(True)
+	axs2[2,1].set_title('Cumulative Methane Production - m3/d', fontsize=10)
 
 # Evaluate area below of the curve _Ych4 with trapezoidal rule
 lb = _M[0]		# kg/m3
