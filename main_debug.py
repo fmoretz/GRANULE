@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp, odeint
-
+from design_input import *
+from influent_input import *
+from physical_coefficients import *
+from kinetic_coefficients import *
 
 plt.close('all')
 N   = 20 		          # number of CSTRs
@@ -25,55 +28,16 @@ def fCSTR(y, t, Q, V, Sin, R, Y, Kd, eta, U, A, rb, cp, m, Tin, Tw, Na):
 
 
 # ∞∞ DATA ∞∞
-Y  	= 0.1		# gCH4/gS -- from stoichiometry
-Ks	= 0.372		# kg/m3
-Xo  = 2			# kg/m3 -- sunpharma = 0 (to investigate)
-Eo  = 0         # kg/m3
-Mo  = 0		 	# kg/m3
-Ro 	= 2.5 		# mm    -- sunpharma = ? (industrial value, to investigate)
-rb  = 1000		# kg/m3
-Kd  = 1.4e-3	# h-1
-Dc  = 4.05 		# m -- sunpharma L/D = 3
-Vef = 167		# m3 -- sunpharma
-H   = 13		# m -- sunpharma
-V   = 180       #m3
-
-# Enitan et al
-K   = 0.046		 # g/g
-b   = K/Y
-B0  = 0.516 	 # L CH4 /g COD added
-Kd  = 0.083 /24  # h
-
-MM_CH4 = 16.04   # kg/kmol
-
-cp  = 4186	     		# J/kg/K
-m   = rb * Vef;  		# kg
-Tw  = 50 + 273.15;		# K
-To  = 30 + 273.15;  	# K
+m   = rho_biomass * Vef;  		# kg
 U   = 400 * 3600 		# J/m2/h/K
-A   = 3.1415*Dc*H/N     # m2
-
-# Diffusivity Wilke - Chang
-phi = 2.6
-viscosity_H2O = 0.57      #cP
-MM_H2O = 18     #g/mol
-V_H2O  = 18     #cm3/mol
-
-rho_ch4 = 0.657     #kg CH4 / m³ CH4
-
+A_lateral   = 3.1415*Dc*H/N     # m2
 
 D  = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
-
-
-
 _m  = (0.013*(To-273.15)-0.129)/24  # h-1
 
 # sunpharma scenario 1
 #day_sim = [10, 20, 50, 100];
 day_sim = [365]
-So = 227.41/1000 # kg/m3
-u = 2.1 # m/h
-_Q = 27 # m3/h
 
 for index in range(0, len(day_sim)):
 	day = day_sim[index] 	# days of simulations
@@ -93,8 +57,8 @@ for index in range(0, len(day_sim)):
 	_Rnew.append(Ro/1000)
 
 	# ∞∞ CYCL ∞∞
-	Np = round((Xo+Eo)/rb * 3/4 * 1/(3.1415 * (Ro/1000)**3))
-	Na = round((Xo)/rb * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	Np = round((Xo+Eo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	Na = round((Xo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
 
 	for k in range(1, N+1):
 
@@ -106,11 +70,11 @@ for index in range(0, len(day_sim)):
 			_r = _r + dr
 			r.append(_r)
 
-		if (Xo + Eo) >= 0.25*rb:
+		if (Xo + Eo) >= 0.25*rho_biomass:
 			print('N:{} passed'.format(k))
 			pass
 		else:
-			print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo+Eo, 0.25*rb, r[-1]))
+			print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo+Eo, 0.25*rho_biomass, r[-1]))
 			# Neumann   - Surface of particle
 			Sp[-1] = ( km*So - D/dr*Sp[npt-1] )/( km - D/dr )
 
@@ -133,7 +97,7 @@ for index in range(0, len(day_sim)):
 			eta  = (3 * D * (Sp[-1] - Sp[-2])/dr) / ( r[-1] * (_m*Xo/Y) * Sp[-1]/(Ks + Sp[-1]))
 			_eta.append(eta)
 
-			Rnew = ( 3/4 * (Xo+Eo)/(rb * 3.1415 * Np) )**(1/3)
+			Rnew = ( 3/4 * (Xo+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
 
 			_Rnew.append(Rnew)
 
@@ -141,19 +105,19 @@ for index in range(0, len(day_sim)):
 
 			_R = _q * (4*3.1415*r[-1]**2)*Np
 
-			if _Q in locals():
+			if Q in locals():
 				pass
 			else:
-				_Q = u * (3.1415*Dc**2)/4
+				Q = u * (3.1415*Dc**2)/4
 
-			HRT = Vef / _Q	#h
+			HRT = Vef / Q	#h
 			B   = B0 *( 1 - K / (_m * HRT/(Kd*HRT + 1) + K-1) ) 	# m3 CH4 / kg COD added
 			Yv  = B * So / HRT                                   	# m3 CH4 / kg COD added / h
 			Ych4 = Yv * So * Vef									# m3 CH4 / h
 			_Ych4.append(Ych4)
 			_Yv.append(Yv)
 
-			V_molar = 8.3145 * 10**3 * To / (101325 + rb*9.8066*H)   				#m3/kmol
+			V_molar = 8.3145 * 10**3 * To / (101325 + rho_biomass*9.8066*H_ef)   				#m3/kmol
 
 			Vload  = 0.25*Vef
 			Vbed   = Vload + Yv * MM_CH4 / ( V_molar * Y * _R )
@@ -171,7 +135,7 @@ for index in range(0, len(day_sim)):
 				fCSTR,
 				[So, Xo, Eo, To, Mo],
 				t,
-				args=(_Q, Vef/N, So, _R, Y, Kd, eta, U, A, rb, cp, m, To, Tw, Na),
+				args=(Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
 				atol=1e-7,
 				rtol=1e-9,
 				mxstep=100000
