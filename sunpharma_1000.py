@@ -6,22 +6,24 @@ from design_input import *
 from influent_input import *
 from physical_coefficients import *
 from kinetic_coefficients import *
+from sunpharma_500 import S_final_500 as So, X_final_500 as X0, M_final_500 as Mo
 
 plt.close('all')
-N   = 20 		          # number of CSTRs
+N   = 5 		          # number of CSTRs
 
 # ∞∞ DATA ∞∞
 m   = rho_biomass * Vef;  		# kg
-U   = 400 * 3600 		# J/m2/h/K
+U   = 400 * 3600 	         	# J/m2/h/K
 A_lateral   = 3.1415*Dc*H/N     # m2
 
 
 D   = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 _m  = (0.013*(To-273.15)-0.129)/24  # h-1
 
+X0 = 4
 # sunpharma scenario 1
 #day_sim = [10, 20, 50, 100];
-day_sim = [365]
+day_sim = [1000]
 
 for index in range(0, len(day_sim)):
 	day = day_sim[index] 	# days of simulations
@@ -36,13 +38,13 @@ for index in range(0, len(day_sim)):
 	_Yv = []; _Vbed = []; _ratio = []; _Ych4 = []; _M = []; _M_vol = []
 	M_ss = np.zeros(N+1); M_vol_ss = np.zeros(N+1); M_cumulative = np.zeros(N+1)
 	S_ss = np.zeros(N+1); X_ss = np.zeros(N+1); E_ss = np.zeros(N+1)
-	S_ss[0] = So; X_ss[0] = Xo; E_ss[0] = Eo;
+	S_ss[0] = So; X_ss[0] = X0; E_ss[0] = Eo;
 	N_real = []
 	_Rnew.append(Ro/1000)
 
 	# ∞∞ CYCL ∞∞
-	Np = round((Xo+Eo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
-	Na = round((Xo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	Np = round((X0+Eo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	Na = round((X0)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
 
 	for k in range(1, N+1):
 
@@ -60,11 +62,12 @@ for index in range(0, len(day_sim)):
 			_r = _r + dr
 			r.append(_r)
 
-		if (Xo + Eo) >= 0.25*rho_biomass:
+		print(X0+Eo)
+		if (X0 + Eo) >= 0.25*rho_biomass:
 			print('N:{} passed'.format(k))
 			pass
 		else:
-			print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo+Eo, 0.25*rho_biomass, r[-1]))
+			print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, X0+Eo, 0.25*rho_biomass, r[-1]))
 			N_real.append(k)
 			# Neumann   - Surface of particle
 			Sp[-1] = ( km*So - D/dr*Sp[npt-1] )/( km - D/dr )
@@ -74,7 +77,7 @@ for index in range(0, len(day_sim)):
 				if (i == npt-1):
 					break
 				else:
-					g = (_m/Y/D*Xo) * Sp[i]/(Ks + Sp[i])
+					g = (_m/Y/D*X0) * Sp[i]/(Ks + Sp[i])
 					A = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
 					B = -1/dr**2 * Sp[i-1]
 
@@ -85,10 +88,10 @@ for index in range(0, len(day_sim)):
 					Sp[0]  = Sp[1]
 
 			# efficiency
-			eta  = (3 * D * (Sp[-1] - Sp[-2])/dr) / ( r[-1] * (_m*Xo/Y) * Sp[-1]/(Ks + Sp[-1]))
+			eta  = (3 * D * (Sp[-1] - Sp[-2])/dr) / ( r[-1] * (_m*X0/Y) * Sp[-1]/(Ks + Sp[-1]))
 			_eta.append(eta)
 
-			Rnew = ( 3/4 * (Xo+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
+			Rnew = ( 3/4 * (X0+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
 
 			_Rnew.append(Rnew)
 
@@ -117,14 +120,14 @@ for index in range(0, len(day_sim)):
 			_ratio.append(ratio)
 
 			t = np.linspace(	# Time span definition
-			0,					# Start - h
+			500/N*24,					# Start - h
 			day/N*24,			# End   - h
 			npt				# Number of iter
 			)
 
 			sol = odeint(
 			fCSTR,
-			[So, Xo, Eo, To, Mo],
+			[So, X0, Eo, To, Mo],
 			t,
 			args=(Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
 			atol=1e-7,
@@ -145,7 +148,7 @@ for index in range(0, len(day_sim)):
 
 
 			So = S[-1]
-			Xo = Xo#X[-1]
+			X0 = X0
 			Eo = E[-1]
 			To = T[-1]
 			Mo = 0
@@ -176,18 +179,29 @@ for index in range(0, len(day_sim)):
 		r[i]  = r[i]  * 1000
 		Sp[i] = Sp[i]
 
-	for i in range(0, N_real[-1] +1):
+	
+	for i in range(0, N_real[-1]+1):
 		_Rnew[i] = _Rnew[i]*1000
 
 	# ∞∞ VISZ ∞∞
-	t = np.linspace(0, day, len(_S))
-	t_ss = np.linspace(0, day, len(M_ss))
+	t = np.linspace(500, day, len(_S))
+	t_ss = np.linspace(500, day, len(M_ss))
 
 	#plt.plot(r, Sp, linewidth=2, label='elapsed:{}'.format(day))
 	#plt.xlabel('r - mm')
 	#plt.ylabel('Sp - g/m3')
 	#plt.grid(True)
 	#plt.legend()
+	S_final_1000 = _S[-1]
+	X_final_1000 = _X[-1]
+	E_final_1000 = _E[-1]
+	M_final_1000 = _M[-1]
+
+	print(S_final_1000) 
+	print(X_final_1000) 
+	print(E_final_1000) 
+	print(M_final_1000) 
+
 
 	fig, axs = plt.subplots(4, 2, figsize=(6, 8))
 	plt.subplots_adjust(
@@ -216,7 +230,7 @@ for index in range(0, len(day_sim)):
 	axs[1,0].plot(t_ss, S_ss, 'b-o', linewidth=1)
 	axs[1,0].set_xlabel('t - d')
 	axs[1,0].set_ylabel('S, - kg/m3')
-	axs[1,0].set_xlim([0, t[-1]+10])
+	axs[1,0].set_xlim([500, t[-1]+10])
 	axs[1,0].set_title('Substrate Concentration Profile', fontsize=10)
 	axs[1,0].grid(True)
 
@@ -224,8 +238,8 @@ for index in range(0, len(day_sim)):
 	axs[1,1].plot(t_ss, X_ss, 'y-o', linewidth=1)
 	axs[1,1].set_xlabel('t - d')
 	axs[1,1].set_ylabel('X - kg/m3')
-	axs[1,1].set_xlim([0, t[-1]+10])
-	axs[1,1].set_ylim([0, 1.5*Xo])
+	axs[1,1].set_xlim([500, t[-1]+10])
+	#axs[1,1].set_ylim([0, 1.5*X0])
 	axs[1,1].set_title('Active Biomass Concentration Profile', fontsize=10)
 	axs[1,1].grid(True)
 
@@ -234,7 +248,7 @@ for index in range(0, len(day_sim)):
 	axs[2,0].plot(t_ss, E_ss, 'm-o', linewidth=1)
 	axs[2,0].set_xlabel('t - d')
 	axs[2,0].set_ylabel('E - kg/m3')
-	axs[2,0].set_xlim([0, t[-1]+10])
+	axs[2,0].set_xlim([500, t[-1]+10])
 	axs[2,0].set_title('Inactive Biomass Concentration Profile', fontsize=10)
 	axs[2,0].grid(True)
 
@@ -242,14 +256,14 @@ for index in range(0, len(day_sim)):
 	axs[2,1].set_xlabel('t - d')
 	axs[2,1].set_ylabel('Cumulative Methane - m3/d')
 	axs[2,1].set_title('Cumulative Methane Production', fontsize=10)
-	axs[2,1].set_xlim([0, t_ss[-1]])
+	axs[2,1].set_xlim([500, t_ss[-1]])
 	axs[2,1].grid(True)
 
 	axs[3,0].plot(t, _M, 'g--', linewidth=0.4, label='M')
 	axs[3,0].plot(t_ss, M_ss, 'g-o', linewidth=1)
 	axs[3,0].set_xlabel('t - d')
 	axs[3,0].set_ylabel('M - kg/m3')
-	axs[3,0].set_xlim([0, t[-1]+10])
+	axs[3,0].set_xlim([500, t[-1]+10])
 	axs[3,0].set_title('Methane Concentration Profile', fontsize=10)
 	axs[3,0].grid(True)
 
@@ -257,7 +271,7 @@ for index in range(0, len(day_sim)):
 	axs[3,1].plot(t_ss, M_vol_ss, 'r-o', linewidth=1)
 	axs[3,1].set_xlabel('t - d')
 	axs[3,1].set_ylabel('M - m3/d')
-	axs[3,1].set_xlim([0, t[-1]+10])
+	axs[3,1].set_xlim([500, t[-1]+10])
 	axs[3,1].set_title('Methane Volumetric Production', fontsize=10)
 	axs[3,1].grid(True)
 
@@ -269,58 +283,58 @@ for index in range(0, len(day_sim)):
 	#plt.grid(True)
 	#plt.title('Cumulative Methane Production - m3/d', fontsize=10)
 
-	fig2, axs2 =plt.subplots(3, 2, figsize=(6, 8))
-	plt.subplots_adjust(
-		left   = 0.125,
-	    bottom = 0.071,
-	    right  = 0.9,
-	    top    = 0.971,
-	    wspace = 0.2,
-	    hspace = 0.5
-		)
-
-	axs2[0,0].plot(np.linspace(0, N_real[-1], N_real[-1]+1), _Rnew, 'k-o', linewidth=1.5)
-	axs2[0,0].set_xlabel('N° CSTR')
-	axs2[0,0].set_ylabel('Particle Radius - mm')
-	axs2[0,0].set_xlim([0,N])
-	axs2[0,0].set_title('Increase of the Particle Radius', fontsize=10)
-	axs2[0,0].grid(True)
-
-	axs2[0,1].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _eta[1:-1], 'b-o', linewidth=1, label='S')
-	axs2[0,1].set_xlabel('N° CSTR')
-	axs2[0,1].set_ylabel('Efficiency')
-	axs2[0,1].set_xlim([0,N])
-	axs2[0,1].set_title('Internal Mass Transfer Efficiency', fontsize=10)
-	axs2[0,1].grid(True)
-
-	axs2[1,0].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Yv[1:-1],  'k-o', linewidth=2)
-	axs2[1,0].set_xlabel('N° CSTR ')
-	axs2[1,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
-	axs2[1,0].set_xlim([0,N])
-	axs2[1,0].set_title('Methane Production Rate', fontsize=10)
-	axs2[1,0].grid(True)
-
-	axs2[1,1].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Vbed[1:-1], 'b-o', linewidth=2)
-	axs2[1,1].set_xlabel('N° CSTR ')
-	axs2[1,1].set_ylabel('Vbed - m3')
-	axs2[1,1].set_xlim([0,N])
-	axs2[1,1].set_ylim([0, V])
-	axs2[1,1].set_title('Bed Volume Expansion', fontsize=10)
-	axs2[1,1].grid(True)
-
-	axs2[2,0].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Ych4[1:-1], 'k-o', linewidth=2)
-	axs2[2,0].set_xlabel('N° CSTR')
-	axs2[2,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
-	axs2[2,0].set_xlim([0,N])
-	axs2[2,0].set_title('Methane Production Rate', fontsize=10) #to change
-	axs2[2,0].grid(True)
-
-	axs2[2,1].plot(r_ext*1000, Sp_ext, 'b-o', linewidth=1.5, label='Sp', markevery=20)
-	axs2[2,1].set_xlabel('r - mm')
-	axs2[2,1].set_ylabel('S - kg/m3')
-	axs2[2,1].grid(True)
-	axs2[2,1].set_title('Substrate profile outside particle', fontsize=10)
-
+	#fig2, axs2 =plt.subplots(3, 2, figsize=(6, 8))
+	#plt.subplots_adjust(
+	#	left   = 0.125,
+	#    bottom = 0.071,
+	#    right  = 0.9,
+	#    top    = 0.971,
+	#    wspace = 0.2,
+	#    hspace = 0.5
+	#	)
+#
+	#axs2[0,0].plot(np.linspace(0, N_real[-1], N_real[-1]+1), _Rnew, 'k-o', linewidth=1.5)
+	#axs2[0,0].set_xlabel('N° CSTR')
+	#axs2[0,0].set_ylabel('Particle Radius - mm')
+	#axs2[0,0].set_xlim([0,N])
+	#axs2[0,0].set_title('Increase of the Particle Radius', fontsize=10)
+	#axs2[0,0].grid(True)
+#
+	#axs2[0,1].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _eta[1:-1], 'b-o', linewidth=1, label='S')
+	#axs2[0,1].set_xlabel('N° CSTR')
+	#axs2[0,1].set_ylabel('Efficiency')
+	#axs2[0,1].set_xlim([0,N])
+	#axs2[0,1].set_title('Internal Mass Transfer Efficiency', fontsize=10)
+	#axs2[0,1].grid(True)
+#
+	#axs2[1,0].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Yv[1:-1],  'k-o', linewidth=2)
+	#axs2[1,0].set_xlabel('N° CSTR ')
+	#axs2[1,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
+	#axs2[1,0].set_xlim([0,N])
+	#axs2[1,0].set_title('Methane Production Rate', fontsize=10)
+	#axs2[1,0].grid(True)
+#
+	#axs2[1,1].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Vbed[1:-1], 'b-o', linewidth=2)
+	#axs2[1,1].set_xlabel('N° CSTR ')
+	#axs2[1,1].set_ylabel('Vbed - m3')
+	#axs2[1,1].set_xlim([0,N])
+	#axs2[1,1].set_ylim([0, V])
+	#axs2[1,1].set_title('Bed Volume Expansion', fontsize=10)
+	#axs2[1,1].grid(True)
+#
+	#axs2[2,0].plot(np.linspace(1, N_real[-1], N_real[-1]-2), _Ych4[1:-1], 'k-o', linewidth=2)
+	#axs2[2,0].set_xlabel('N° CSTR')
+	#axs2[2,0].set_ylabel('Ych4 - m3CH4/kgCOD/h')
+	#axs2[2,0].set_xlim([0,N])
+	#axs2[2,0].set_title('Methane Production Rate', fontsize=10) #to change
+	#axs2[2,0].grid(True)
+#
+	#axs2[2,1].plot(r_ext*1000, Sp_ext, 'b-o', linewidth=1.5, label='Sp', markevery=20)
+	#axs2[2,1].set_xlabel('r - mm')
+	#axs2[2,1].set_ylabel('S - kg/m3')
+	#axs2[2,1].grid(True)
+	#axs2[2,1].set_title('Substrate profile outside particle', fontsize=10)
+#
 # Evaluate area below of the curve _Ych4 with trapezoidal rule
 lb = _M[0]		# kg/m3
 ub = _M[-1]		# kg/m3
@@ -337,4 +351,4 @@ print(f'Total volumetric methane production: {prod_ch4_tot} m3')
 print(f'Error in trapezoidal rule: {err_traps}')
 
 	# LAST ROW
-plt.show()
+
