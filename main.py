@@ -15,12 +15,11 @@ m   = rho_biomass * Vef;  		# kg
 U   = 400 * 3600 		# J/m2/h/K
 A_lateral   = 3.1415*Dc*H/N     # m2
 
-
+viscosity_H2O = 2.414/100*10**(247.8/(To - 140))   #cP
 D   = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 _m  = (0.013*(To-273.15)-0.129)/24  # h-1
+#D   = 1e-10
 
-# sunpharma scenario 1
-#day_sim = [10, 20, 50, 100];
 day_sim = [365]
 
 for index in range(0, len(day_sim)):
@@ -75,11 +74,11 @@ for index in range(0, len(day_sim)):
 					break
 				else:
 					g = (_m/Y/D*Xo) * Sp[i]/(Ks + Sp[i])
-					A = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
-					B = -1/dr**2 * Sp[i-1]
+					a = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
+					b = -1/dr**2 * Sp[i-1]
 
 					# Solution to Sp
-					Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (A + B + g)
+					Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (a + b + g)
 
 					# Dirichlet - Center of particle
 					Sp[0]  = Sp[1]
@@ -89,7 +88,7 @@ for index in range(0, len(day_sim)):
 			_eta.append(eta)
 
 			Rnew = ( 3/4 * (Xo+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
-
+		
 			_Rnew.append(Rnew)
 
 			_q = km * (So - Sp[0])       #-D * (Sp[0] - Sp[-1])/(2*dr)
@@ -119,7 +118,7 @@ for index in range(0, len(day_sim)):
 			t = np.linspace(	# Time span definition
 			0,					# Start - h
 			day/N*24,			# End   - h
-			npt				# Number of iter
+			npt					# Number of iter
 			)
 
 			sol = odeint(
@@ -156,6 +155,7 @@ for index in range(0, len(day_sim)):
 			M_cumulative[k] = M_cumulative[k-1] + M_vol_ss[k]    #m3/d
 
 			_m  = (0.013*(To-273.15)-0.129)/24  # h-1
+			viscosity_H2O = 2.414/100*10**(247.8/(To - 140))   #cP
 			D  = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 
 
@@ -199,62 +199,76 @@ for index in range(0, len(day_sim)):
 		hspace = 0.5
 		)
 
-	axs[0,0].plot(r, Sp, 'k-o', linewidth=1.5, label='Sp', markevery=41)
-	axs[0,0].plot(r_ext*1000, Sp_ext, 'r-o', linewidth=1.5, label='Sp', markevery=61)
+	Sp_graph = np.array(Sp) * Xinitial
+	Sp_ext_graph = np.array(Sp_ext) * Xinitial 
+	_S_graph = np.array(_S) * Xinitial
+	S_ss_graph = np.array(S_ss) * Xinitial
+	_X_graph = np.array(_X) * Xinitial
+	X_ss_graph = np.array(X_ss) * Xinitial
+	_E_graph = np.array(_E) * Xinitial
+	E_ss_graph = np.array(E_ss) * Xinitial
+	M_cumulative_graph = np.array(M_cumulative) * Xinitial
+	_M_graph = np.array(_M) * Xinitial	
+	M_ss_graph = np.array(M_ss) * Xinitial
+	_M_vol_graph = np.array(_M_vol)*Xinitial
+	M_vol_ss_graph = np.array(M_vol_ss)*Xinitial
+
+	axs[0,0].plot(r, Sp_graph, 'k-o', linewidth=1.5, label='Sp', markevery=41)
+	axs[0,0].plot(r_ext*1000, Sp_ext_graph, 'r-o', linewidth=1.5, label='Sp', markevery=61)
 	axs[0,0].set_xlabel('r - mm')
 	axs[0,0].set_ylabel('Sp - kg/m3')
 	axs[0,0].set_title('Substrate gradient inside the granule', fontsize=10)
 	axs[0,0].grid(True)
 
-	axs[0,1].plot(r_ext*1000, Sp_ext*1000, 'k-o', linewidth=1.5, label='Sp', markevery=20)
+	axs[0,1].plot(r_ext*1000, Sp_ext_graph, 'k-o', linewidth=1.5, label='Sp', markevery=61)
 	axs[0,1].set_xlabel('r - mm')
-	axs[0,1].set_ylabel('S - g/m3')
+	axs[0,1].set_ylabel('Sp - kg/m3')
 	axs[0,1].grid(True)
 	axs[0,1].set_title('Substrate profile outside particle', fontsize=10)
 
-	axs[1,0].plot(t, _S, 'b--', linewidth=0.4, label='S')
-	axs[1,0].plot(t_ss, S_ss, 'b-o', linewidth=1)
+	axs[1,0].plot(t, _S_graph, 'b--', linewidth=0.4, label='S')
+	axs[1,0].plot(t_ss, S_ss_graph, 'b-o', linewidth=1)
 	axs[1,0].set_xlabel('t - d')
 	axs[1,0].set_ylabel('S, - kg/m3')
 	axs[1,0].set_xlim([0, t[-1]+10])
 	axs[1,0].set_title('Substrate Concentration Profile', fontsize=10)
 	axs[1,0].grid(True)
 
-	axs[1,1].plot(t, _X, 'y--', linewidth=0.4, label='X')
-	axs[1,1].plot(t_ss, X_ss, 'y-o', linewidth=1)
+	axs[1,1].plot(t, _X_graph, 'y--', linewidth=0.4, label='X')
+	axs[1,1].plot(t_ss, X_ss_graph, 'y-o', linewidth=1)
 	axs[1,1].set_xlabel('t - d')
 	axs[1,1].set_ylabel('X - kg/m3')
 	axs[1,1].set_xlim([0, t[-1]+10])
-	axs[1,1].set_ylim([0, 1.5*Xo])
+	axs[1,1].set_ylim([0, 1.5*max(_X_graph)])
 	axs[1,1].set_title('Active Biomass Concentration Profile', fontsize=10)
 	axs[1,1].grid(True)
 
 
-	axs[2,0].plot(t, _E, 'm--', linewidth=0.4, label='E')
-	axs[2,0].plot(t_ss, E_ss, 'm-o', linewidth=1)
+	axs[2,0].plot(t, _E_graph, 'm--', linewidth=0.4, label='E')
+	axs[2,0].plot(t_ss, E_ss_graph, 'm-o', linewidth=1)
 	axs[2,0].set_xlabel('t - d')
 	axs[2,0].set_ylabel('E - kg/m3')
 	axs[2,0].set_xlim([0, t[-1]+10])
 	axs[2,0].set_title('Inactive Biomass Concentration Profile', fontsize=10)
 	axs[2,0].grid(True)
 
-	axs[2,1].plot(t_ss, M_cumulative, 'r-o', linewidth=1.5, label='Cumulative Methane')
+	axs[2,1].plot(t_ss, M_cumulative_graph, 'r-o', linewidth=1.5, label='Cumulative Methane')
 	axs[2,1].set_xlabel('t - d')
 	axs[2,1].set_ylabel('Cumulative Methane - m3/d')
 	axs[2,1].set_title('Cumulative Methane Production', fontsize=10)
 	axs[2,1].set_xlim([0, t_ss[-1]])
 	axs[2,1].grid(True)
 
-	axs[3,0].plot(t, _M, 'g--', linewidth=0.4, label='M')
-	axs[3,0].plot(t_ss, M_ss, 'g-o', linewidth=1)
+	axs[3,0].plot(t, _M_graph, 'g--', linewidth=0.4, label='M')
+	axs[3,0].plot(t_ss, M_ss_graph, 'g-o', linewidth=1)
 	axs[3,0].set_xlabel('t - d')
 	axs[3,0].set_ylabel('M - kg/m3')
 	axs[3,0].set_xlim([0, t[-1]+10])
 	axs[3,0].set_title('Methane Concentration Profile', fontsize=10)
 	axs[3,0].grid(True)
 
-	axs[3,1].plot(t, _M_vol, 'r--', linewidth=0.4, label='M')
-	axs[3,1].plot(t_ss, M_vol_ss, 'r-o', linewidth=1)
+	axs[3,1].plot(t, _M_vol_graph, 'r--', linewidth=0.4, label='M')
+	axs[3,1].plot(t_ss, M_vol_ss_graph, 'r-o', linewidth=1)
 	axs[3,1].set_xlabel('t - d')
 	axs[3,1].set_ylabel('M - m3/d')
 	axs[3,1].set_xlim([0, t[-1]+10])

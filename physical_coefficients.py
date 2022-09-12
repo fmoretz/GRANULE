@@ -1,11 +1,9 @@
-
 # Biomass properties
-rho_biomass  = 1000		# kg/m3
+rho_biomass  = 1039		# kg/m3
 
 # Water properties
 cp  = 4186	     		  # J/kg/K
 phi = 2.6                 #Wilke Chang coefficient
-viscosity_H2O = 0.57      #cP
 rho_H2O = 1000            #kg/m3
 MM_H2O = 18               #g/mol    molar mass
 V_H2O  = 18               #cm3/mol  molar volume
