@@ -8,7 +8,7 @@ from physical_coefficients import *
 from kinetic_coefficients import *
 
 plt.close('all')
-N   = 20 		          # number of CSTRs
+N   = 50		          # number of CSTRs
 
 # ∞∞ DATA ∞∞
 m   = rho_biomass * Vef;  		# kg
@@ -16,159 +16,156 @@ U   = 400 * 3600 				# J/m2/h/K
 A_lateral   = 3.1415*Dc*H/N     # m2
 
 
-D   = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
+#D   = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 _m  = (0.013*(To-273.15)-0.129)/24  # h-1
-
+D = 10**-4
 # sunpharma scenario 1
 #day_sim = [10, 20, 50, 100];
-day_sim = [2000]
-# ∞∞ INIT ∞∞
-npt = 251
+day_sim = [200]
 
 for index in range(0, len(day_sim)):
+	day = day_sim[0] 	# days of simulations
+	# ∞∞ INIT ∞∞
+	npt = 251
 
-	day = [0, 500, 1000, 1500, 2000]
-	Xo  = [0, 2, 4, 6, 8]
+	# ∞∞ BCON ∞∞
+	Sp  = np.zeros(npt, dtype='float64')
 
-	for index2 in range(1, len(day)+1):
-		# ∞∞ BCON ∞∞
-		Sp  = np.zeros(npt, dtype='float64')
 
-		_S = []; _X = []; _E = []; _T=[]; _Rnew = [];  _eta = []
-		_Yv = []; _Vbed = []; _ratio = []; _Ych4 = []; _M = []; _M_vol = []
-		M_ss = np.zeros(N+1); M_vol_ss = np.zeros(N+1); M_cumulative = np.zeros(N+1)
-		S_ss = np.zeros(N+1); X_ss = np.zeros(N+1); E_ss = np.zeros(N+1)
-		S_ss[0] = So; X_ss[0] = Xo[index2]; E_ss[0] = Eo;
-		N_real = []; _prod_ch4 =[]
-		_Rnew.append(Ro/1000)
+	_S = []; _X = []; _E = []; _T=[]; _Rnew = [];  _eta = []
+	_Yv = []; _Vbed = []; _ratio = []; _Ych4 = []; _M = []; _M_vol = []
+	M_ss = np.zeros(N+1); M_vol_ss = np.zeros(N+1); M_cumulative = np.zeros(N+1)
+	S_ss = np.zeros(N+1); X_ss = np.zeros(N+1); E_ss = np.zeros(N+1)
+	S_ss[0] = So; X_ss[0] = Xo; E_ss[0] = Eo;
+	N_real = []
+	_Rnew.append(Ro/1000)
 
-		# ∞∞ CYCL ∞∞
-		Np = round((Xo[index2]+Eo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
-		Na = round((Xo[index2])/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	# ∞∞ CYCL ∞∞
+	Np = round((Xo+Eo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
+	Na = round((Xo)/rho_biomass * 3/4 * 1/(3.1415 * (Ro/1000)**3))
 
-		for k in range(1, N+1):
+	for k in range(1, N+1):
 
-			dr = _Rnew[-1]/npt
-			r = []; _r = 0;
+		dr = _Rnew[-1]/npt
+		r = []; _r = 0;
 
-			Dp  = _Rnew[-1]*2
-			Re  = rho_H2O * u/3600 * Dp /(viscosity_H2O/1000)
-			Sc  = (viscosity_H2O/1000) / ( rho_H2O * D/3600)
-			Sh  = 2 + ( 1.6*Re**(1/3) + 0.6*Re**(0.5) + 5e-3*Re**(0.8) ) * Sc**(1/3)
 
-			km  = Sh * D / Dp
+		Dp  = _Rnew[-1]*2
+		Re  = rho_H2O * u/3600 * Dp /(viscosity_H2O/1000)
+		Sc  = (viscosity_H2O/1000) / ( rho_H2O * D/3600)
+		Sh  = 2 + ( 1.6*Re**(1/3) + 0.6*Re**(0.5) + 5e-3*Re**(0.8) ) * Sc**(1/3)
 
-			for i in range(0, npt):
-				_r = _r + dr
-				r.append(_r)
+		km  = Sh * D / Dp
 
-			if (Xo[index2] + Eo) >= 0.25*rho_biomass:
-				print('N:{} passed'.format(k))
-				pass
+		for i in range(0, npt):
+			_r = _r + dr
+			r.append(_r)
+
+		#if (Xo + Eo) >= 0.25*rho_biomass:
+			#print('N:{} passed'.format(k))
+			#pass
+		#else:
+		print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo+Eo, 0.25*rho_biomass, r[-1]))
+		N_real.append(k)
+			# Neumann   - Surface of particle
+		Sp[-1] = ( km*So - D/dr*Sp[npt-1] )/( km - D/dr )
+
+		for i in range(0, npt):
+
+			if (i == npt-1):
+				break
 			else:
-				print("N:{}, lhs:{}, rhs:{}, r:{}".format(k, Xo[index2]+Eo, 0.25*rho_biomass, r[-1]))
-				N_real.append(k)
-				# Neumann   - Surface of particle
-				Sp[-1] = ( km*So - D/dr*Sp[npt-1] )/( km - D/dr )
+				g = (_m/Y/D*Xo) * Sp[i]/(Ks + Sp[i])
+				A = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
+				B = -1/dr**2 * Sp[i-1]
+				# Solution to Sp
+				Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (A + B + g)
+				# Dirichlet - Center of particle
+				Sp[0]  = Sp[1]
 
-				for i in range(0, npt):
+		# efficiency
+		eta  = (3 * D * (Sp[-1] - Sp[-2])/dr) / ( r[-1] * (_m*Xo/Y) * Sp[-1]/(Ks + Sp[-1]))
+		_eta.append(eta)
 
-					if (i == npt-1):
-						break
-					else:
-						g = (_m/Y/D*Xo[index2]) * Sp[i]/(Ks + Sp[i])
-						A = (2*dr + 2*r[i])/(r[i]*dr**2) * Sp[i]
-						B = -1/dr**2 * Sp[i-1]
+		Rnew = ( 3/4 * (Xo+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
+		_Rnew.append(Rnew)
 
-						# Solution to Sp
-						Sp[i+1] = r[i]*dr**2/(2*dr + r[i]) * (A + B + g)
-
-						# Dirichlet - Center of particle
-						Sp[0]  = Sp[1]
-
-						# efficiency
-					eta  = (3 * D * (Sp[-1] - Sp[-2])/dr) / ( r[-1] * (_m*Xo[index2]/Y) * Sp[-1]/(Ks + Sp[-1]))
-					_eta.append(eta)
-
-					Rnew = ( 3/4 * (Xo[index2]+Eo)/(rho_biomass * 3.1415 * Np) )**(1/3)
-					_Rnew.append(Rnew)
-
-					_q = km * (So - Sp[0])       #-D * (Sp[0] - Sp[-1])/(2*dr)
-
-					_R = _q * (4*3.1415*r[-1]**2)*Np
-
-					if Q in locals():
-						pass
-					else:
-						Q = u * (3.1415*Dc**2)/4
-
-					HRT = Vef / Q	#h
-					B   = B0 *( 1 - K / (_m * HRT/(Kd*HRT + 1) + K-1) ) 	# m3 CH4 / kg COD added
-					Yv  = B * So / HRT                                   	# m3 CH4 / kg COD added / h
-					Ych4 = Yv * So * Vef									# m3 CH4 / h
-					_Ych4.append(Ych4)
-					_Yv.append(Yv)
-
-					V_molar = 8.3145 * 10**3 * To / (101325 + rho_biomass*9.8066*H_ef)   				#m3/kmol
-
-					Vload  = 0.25*Vef
-					Vbed   = Vload + Yv * MM_CH4 / ( V_molar * Y * _R )
-					_Vbed.append(Vbed)
-					ratio = Vbed / V
-					_ratio.append(ratio)
-
-					t = np.linspace(	    # Time span definition
-					day[index2-1]/N*24,						# Start - h
-					day[index2]/N*24,		# End   - h
-					npt						# Number of iter
-					)
-
-					sol = odeint(
-					fCSTR,
-					[So, Xo[index2], Eo, To, Mo],
-					t,
-					args=(Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
-					atol=1e-7,
-					rtol=1e-9,
-					mxstep=100000
-					)
-
-					S = sol[:,0]
-					X = sol[:,1]
-					E = sol[:,2]
-					T = sol[:,3]
-					M = sol[:,4]
-
-					S_ss[k] = S[-1]
-					X_ss[k] = X[-1]
-					E_ss[k] = E[-1]
-					M_ss[k] = M[-1]
+		_q = km * (So - Sp[0])       #-D * (Sp[0] - Sp[-1])/(2*dr)
+		_R = _q * (4*3.1415*r[-1]**2)*Np
+		print("So:{}, Sp surface:{}, _q:{}, _R:{}".format(So, Sp[0], _q, _R))
 
 
-					So = S[-1]
-					#Xo = Xo
-					Eo = E[-1]
-					To = T[-1]
-					Mo = 0
+		#if Q in locals():
+		#	pass
+		#else:
+			#Q = u * (3.1415*Dc**2)/4
 
-					prod_ch4 = M / rho_ch4 * Vef     					 #m3 ch4
-					M_vol = prod_ch4 / HRT* 24	      					 #m3/d
-					M_vol_ss[k] = M_ss[k] / rho_ch4 * Vef / HRT* 24  	 #m3/d
-					M_cumulative[k] = M_cumulative[k-1] + M_vol_ss[k]    #m3/d
-#
-					_m  = (0.013*(To-273.15)-0.129)/24  # h-1
-					D  = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
+		HRT = Vef / Q	#h
+		B   = B0 *( 1 - K / (_m * HRT/(Kd*HRT + 1) + K-1) ) 	# m3 CH4 / kg COD added
+		Yv  = B * So / HRT                                   	# m3 CH4 / kg COD added / h
+		Ych4 = Yv * So * Vef									# m3 CH4 / h
+		_Ych4.append(Ych4)
+		_Yv.append(Yv)
+
+		V_molar = 8.3145 * 10**3 * To / (101325 + rho_biomass*9.8066*H_ef)   				#m3/kmol
+
+		Vload  = 0.25*Vef
+		Vbed   = Vload + Yv * MM_CH4 / ( V_molar * Y * _R )
+		_Vbed.append(Vbed)
+		ratio = Vbed / V
+		_ratio.append(ratio)
+
+		t = np.linspace(	# Time span definition
+		0,					# Start - h
+		day/N*24,			# End   - h
+		npt				# Number of iter
+		)
+
+		sol = odeint(
+		fCSTR,
+		[So, Xo, Eo, To, Mo],
+		t,
+		args=(Q, Vef/N, So, _R, Y, Kd, eta, U, A_lateral, rho_biomass, cp, m, To, Tw, Na),
+		atol=1e-7,
+		rtol=1e-9,
+		mxstep=100000
+		)
+
+		S = sol[:,0]
+		X = sol[:,1]
+		E = sol[:,2]
+		T = sol[:,3]
+		M = sol[:,4]
+		if k == 1:
+			print(S)
+
+		S_ss[k] = S[-1]
+		X_ss[k] = X[-1]
+		E_ss[k] = E[-1]
+		M_ss[k] = M[-1]
+
+		So = S[-1]
+		Xo = Xo#X[-1]
+		Eo = E[-1]
+		To = T[-1]
+		Mo = 0
+
+		prod_ch4 = M / rho_ch4 * Vef     					 #m3 ch4
+		M_vol = prod_ch4 / HRT* 24	      					 #m3/d
+		M_vol_ss[k] = M_ss[k] / rho_ch4 * Vef / HRT* 24  	 #m3/d
+		M_cumulative[k] = M_cumulative[k-1] + M_vol_ss[k]    #m3/d
+
+		_m  = (0.013*(To-273.15)-0.129)/24  # h-1
+		D  = (7.4 * 10**-8 *(phi * MM_H2O)**0.5 *To) / (viscosity_H2O * V_H2O**0.6) * 3600 /10**4    #m2/h
 
 
-					for j in range(0, len(t)):
-						_S.append(S[j])
-						_X.append(X[j])
-						_E.append(E[j])
-						_T.append(T[j])
-						_M.append(M[j])
-						_M_vol.append(M_vol[j])
-						_prod_ch4.append(prod_ch4[j])
-
+		for j in range(0, len(t)):
+			_S.append(S[j])
+			_X.append(X[j])
+			_E.append(E[j])
+			_T.append(T[j])
+			_M.append(M[j])
+			_M_vol.append(M_vol[j])
 
 	r_ext  = np.linspace(r[-1], 1.5*r[-1] , npt)
 	Sp_ext = np.zeros(npt)
@@ -183,15 +180,14 @@ for index in range(0, len(day_sim)):
 		_Rnew[i] = _Rnew[i]*1000
 
 	# ∞∞ VISZ ∞∞
-	t = np.linspace(0, day[-1], len(_S))
-	t_ss = np.linspace(0, day[-1], len(M_ss))
+	t = np.linspace(0, day, len(_S))
+	t_ss = np.linspace(0, day, len(M_ss))
 
 	#plt.plot(r, Sp, linewidth=2, label='elapsed:{}'.format(day))
 	#plt.xlabel('r - mm')
 	#plt.ylabel('Sp - g/m3')
 	#plt.grid(True)
 	#plt.legend()
-
 	fig, axs = plt.subplots(4, 2, figsize=(6, 8))
 	plt.subplots_adjust(
 		left   = 0.125,
@@ -228,7 +224,7 @@ for index in range(0, len(day_sim)):
 	axs[1,1].set_xlabel('t - d')
 	axs[1,1].set_ylabel('X - kg/m3')
 	axs[1,1].set_xlim([0, t[-1]+10])
-	axs[1,1].set_ylim([0, 1.5*Xo])
+	axs[1,1].set_ylim([0, 1.5*max(_X)])
 	axs[1,1].set_title('Active Biomass Concentration Profile', fontsize=10)
 	axs[1,1].grid(True)
 
@@ -324,6 +320,8 @@ for index in range(0, len(day_sim)):
 	axs2[2,1].grid(True)
 	axs2[2,1].set_title('Substrate profile outside particle', fontsize=10)
 
+	plt.show()
+
 # Evaluate area below of the curve _Ych4 with trapezoidal rule
 lb = _M[0]		# kg/m3
 ub = _M[-1]		# kg/m3
@@ -339,5 +337,6 @@ print(f'volumetric methane daily production: {prod_ch4_daily} m3/d')
 print(f'Total volumetric methane production: {prod_ch4_tot} m3')
 print(f'Error in trapezoidal rule: {err_traps}')
 
+
 	# LAST ROW
-plt.show()
+#plt.show()
