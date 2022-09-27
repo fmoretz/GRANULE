@@ -156,8 +156,8 @@ for index in range(0, len(day_sim)):
 			plt.legend(loc='best')
 
 
-			So = S[-1]
-			#So = So
+			#So = S[-1]
+			So = So
 			Xo = Xo#X[-1]
 			Eo = E[-1]
 			To = T[-1]
