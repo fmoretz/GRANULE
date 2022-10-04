@@ -144,7 +144,7 @@ for index in range(0, len(day_sim)):
 
 			So = S[-1]
 			#So = So
-			Xo = Xo#X[-1]
+			Xo = X[-1]
 			Eo = E[-1]
 			To = T[-1]
 			Mo = 0
