@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-dg = pd.read_excel("input\input_data.xlsx", sheet_name='influent input', header=None)
+dg = pd.read_excel("input/input_data.xlsx", sheet_name='influent input', header=None)
 
 Sinitial = dg[5][2]
 Xinitial = dg[5][3]

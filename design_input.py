@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_excel("input\input_data.xlsx", sheet_name='design input', header=None)
+df = pd.read_excel("input/input_data.xlsx", sheet_name='design input', header=None)
 print(df[4][2])
 
 V    = df[4][2]
