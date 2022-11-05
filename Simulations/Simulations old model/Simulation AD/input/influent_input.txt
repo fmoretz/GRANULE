@@ -1,0 +1,7 @@
+INFLUENT DATA OF REACTOR 
+
+Inlet substrate concentration [kg/m3]________: 0.23
+Inlet biomass concentration [kg/m3]__________: 2
+Initial radius of the granules (average) [mm]: 2.5
+Temperature of water jacket [°C]_____________: 50 
+Influent temperature [°C]____________________: 30 
